@@ -122,7 +122,7 @@ void loop () {
     DateTime now = rtc.now();        //initialisation du rtc
     
     //costruire du chaie mqtt
-    n = sprintf(dataString, "{\"ts\":%f,\"values\":{\"TMP\":%f,\"HUM\":%f}}" , (double)(now.unixtime() + 10800) * 1000, temp.temperature, humidity.relative_humidity);
+    n = sprintf(dataString, "{\"ts\":%.0f,\"values\":{\"TMP\":%f,\"HUM\":%f}}" , (double)(now.unixtime() + 10800) * 1000, temp.temperature, humidity.relative_humidity);
     
     //open file or create and open if it doesent exist
     File dataFile = SD.open("datalog.txt", FILE_WRITE);
