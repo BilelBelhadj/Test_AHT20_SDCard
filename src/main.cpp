@@ -9,7 +9,7 @@ bool LedStatusClim = false;
 
 int Intensite = 0;
 
-
+//include les fichiers necessaires
 #include <Wire.h>
 #include <Adafruit_AHTX0.h>  
 #include <stdio.h> 
@@ -48,19 +48,18 @@ void setup () {
   
   Serial.begin(9600);
 
-  
   myservo.attach(1);
-
   pinMode(LED_PIN_CHAUF, OUTPUT);
   pinMode(LED_PIN_CLIM, OUTPUT);
 
+  //test de aht20
   if (aht.begin()) {
     Serial.println("Found AHT20");
   } else {
     Serial.println("Didn't find AHT20");
   }
 
-
+  //test de RTC
   if (! rtc.begin()) {
     Serial.println("Couldn't find RTC");
     Serial.flush();
@@ -82,32 +81,30 @@ void setup () {
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }
 
+  //conecter au reseau
   wifiConnect();        
   MQTTConnect(); 
 }
 
-
+//executer chaque interval du temps
 boolean runEveryShort(unsigned long interval){
-
   static unsigned long previousMillis = 0;
   unsigned long currentMillis = millis();
 
   if (currentMillis - previousMillis >= interval){
-
     previousMillis = currentMillis;
     return true;
   }
   return false;
-
 }
 
+//executer chaque interval du temps
 boolean runEveryShortTb(unsigned long interval){
 
   static unsigned long previousMillis = 0;
   unsigned long currentMillis = millis();
 
   if (currentMillis - previousMillis >= interval){
-
     previousMillis = currentMillis;
     return true;
   }
@@ -121,11 +118,11 @@ void loop () {
   ClientMQTT.loop(); 
 
   if (runEveryShort(delayFile)){
-
-    aht.getEvent(&humidity, &temp);   //checking AHT20 existence
-    DateTime now = rtc.now();         //initializing now to current time
+    aht.getEvent(&humidity, &temp);  
+    DateTime now = rtc.now();        //initialisation du rtc
     
-    n = sprintf(dataString, "{\"ts\":%f,\"values\":{\"TMP\":%f,\"HUM\":%f}}" , (double)(now.unixtime() + 13440) * 1000, temp.temperature, humidity.relative_humidity);
+    //costruire du chaie mqtt
+    n = sprintf(dataString, "{\"ts\":%f,\"values\":{\"TMP\":%f,\"HUM\":%f}}" , (double)(now.unixtime() + 10800) * 1000, temp.temperature, humidity.relative_humidity);
     
     //open file or create and open if it doesent exist
     File dataFile = SD.open("datalog.txt", FILE_WRITE);
@@ -136,7 +133,6 @@ void loop () {
       dataFile.close();
       Serial.println(dataString);
       nbLines += 1;
-      
     }else {
       Serial.println("error opening datalog.txt");
     }
@@ -144,22 +140,15 @@ void loop () {
 
 
   if (runEveryShortTb(delayTB)){
-
-    /*
-    status = WL_IDLE_STATUS;
-    wifiConnect();        
-    MQTTConnect();
-    */
-
     File dataFile1 = SD.open("datalog.txt", FILE_READ);
     while (dataFile1.available())
     {
-      chain1 = dataFile1.readStringUntil('\n');
+      chain1 = dataFile1.readStringUntil('\n');   //lire chaque lige
       Serial.println(chain1);
-      sendPayloadString(chain1); 
+      sendPayloadString(chain1);                  //envoi la chaine sur thingsboard
     }
 
-    
+  //activer la climatisation selon la temperature
   if (LedStatusClim)
     {
       analogWrite(LED_PIN_CLIM ,255);
@@ -171,7 +160,7 @@ void loop () {
       myservo.write(90);
     }
 
-
+  //activer le chauffage selon la temperature
   if (LedStatusChauf)
     {
       analogWrite(LED_PIN_CHAUF, 255);
@@ -183,9 +172,6 @@ void loop () {
 
     SD.remove("datalog.txt");
     Serial.println("file deleted");
-
-    //WiFi.disconnect();
-    //WiFi.end();
   }
 }
 
